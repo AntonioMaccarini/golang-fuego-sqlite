@@ -2,6 +2,7 @@ package controller
 
 import (
 	"golang-fuego-sqlite/models"
+	"strconv"
 
 	"github.com/go-fuego/fuego"
 	"github.com/go-fuego/fuego/option"
@@ -34,26 +35,33 @@ func (rs UsersResources) Routes(s *fuego.Server) {
 		option.OperationID("getUser"),
 		option.Path("id", "User ID", param.Example("example", "123")),
 	)
+
 	fuego.Delete(usersGroup, "/{id}", rs.deleteUsers)
 }
 
-func (rs UsersResources) postUsers(c fuego.ContextWithBody[models.UsersCreate]) (models.Users, error) {
+func (rs UsersResources) postUsers(c fuego.ContextWithBody[models.UsersCreate]) (models.User, error) {
 	body, err := c.Body()
 	if err != nil {
-		return models.Users{}, err
+		return models.User{}, err
 	}
 
 	return rs.UsersService.CreateUsers(body)
 }
 
-func (rs UsersResources) getUsers(c fuego.ContextNoBody) (models.Users, error) {
-	id := c.PathParam("id")
+func (rs UsersResources) getUsers(c fuego.ContextNoBody) (models.User, error) {
+	idString := c.PathParam("id")
 
+	idUint64, _ := strconv.ParseUint(idString, 10, 64)
+	id := uint(idUint64)
 	return rs.UsersService.GetUsers(id)
 }
 
 func (rs UsersResources) deleteUsers(c fuego.ContextNoBody) (any, error) {
-	return rs.UsersService.DeleteUsers(c.PathParam("id"))
+	idStr := c.PathParam("id")
+	idUint64, _ := strconv.ParseUint(idStr, 10, 64)
+	id := uint(idUint64)
+
+	return rs.UsersService.DeleteUsers(id)
 }
 
 type UsersFilter struct {
@@ -62,7 +70,7 @@ type UsersFilter struct {
 }
 
 type UsersService interface {
-	GetUsers(id string) (models.Users, error)
-	CreateUsers(models.UsersCreate) (models.Users, error)
-	DeleteUsers(id string) (any, error)
+	GetUsers(id uint) (models.User, error)
+	CreateUsers(models.UsersCreate) (models.User, error)
+	DeleteUsers(id uint) (any, error)
 }

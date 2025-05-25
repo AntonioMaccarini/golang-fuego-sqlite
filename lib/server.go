@@ -13,6 +13,7 @@ func NewGrafanaStoreServer(options ...func(*fuego.Server)) *fuego.Server {
 	usersResources := controller.UsersResources{
 		UsersService: service.NewInMemoryUsersService(),
 	}
+	// Aqui chama o configurador da rota, passando o fuego server
 	usersResources.Routes(s)
 	return s
 }
