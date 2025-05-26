@@ -16,7 +16,7 @@ func NewGrafanaStoreServer(options ...func(*fuego.Server)) *fuego.Server {
 
 	db, err := gorm.Open(sqlite.Open("users.db"), &gorm.Config{})
 	if err != nil {
-		panic("failed to connect to database")
+		panic("failed to connect to database: " + err.Error())
 	}
 
 	db.AutoMigrate(&models.User{})
