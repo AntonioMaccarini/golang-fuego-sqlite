@@ -13,27 +13,17 @@ type UsersResources struct {
 	UsersService UsersService
 }
 
-type UsersError struct {
-	Err     error  `json:"-" xml:"-"`
-	Message string `json:"message" xml:"message"`
-}
-
-var _ error = UsersError{}
-
-func (e UsersError) Error() string { return e.Err.Error() }
-
 func (rs UsersResources) Routes(s *fuego.Server) {
 	usersGroup := fuego.Group(s, "/users", option.Header("X-Header", "header description"))
 
 	fuego.Post(usersGroup, "/", rs.postUsers,
 		option.DefaultStatusCode(201),
-		option.AddResponse(409, "Conflict: User with the same name already exists", fuego.Response{Type: UsersError{}}),
+		option.AddResponse(409, "Conflict", fuego.Response{Type: UsersError{}}),
 	)
 
 	fuego.Get(usersGroup, "/{id}", rs.getUsers,
-		option.OverrideDescription("Replace description with this sentence."),
 		option.OperationID("getUser"),
-		option.Path("id", "User ID", param.Example("example", "123")),
+		option.Path("id", "User ID", param.Example("example", "1")),
 	)
 
 	fuego.Delete(usersGroup, "/{id}", rs.deleteUsers)
@@ -44,30 +34,41 @@ func (rs UsersResources) postUsers(c fuego.ContextWithBody[models.UsersCreate]) 
 	if err != nil {
 		return models.User{}, err
 	}
-
 	return rs.UsersService.CreateUsers(body)
 }
 
 func (rs UsersResources) getUsers(c fuego.ContextNoBody) (models.User, error) {
-	idString := c.PathParam("id")
-
-	idUint64, _ := strconv.ParseUint(idString, 10, 64)
-	id := uint(idUint64)
-	return rs.UsersService.GetUsers(id)
+	idStr := c.PathParam("id")
+	idUint, err := strconv.ParseUint(idStr, 10, 64)
+	if err != nil {
+		return models.User{}, fuego.BadRequestError{
+			Title:  "Invalid ID",
+			Detail: "ID must be a number",
+			Err:    err,
+		}
+	}
+	return rs.UsersService.GetUsers(uint(idUint))
 }
 
 func (rs UsersResources) deleteUsers(c fuego.ContextNoBody) (any, error) {
 	idStr := c.PathParam("id")
-	idUint64, _ := strconv.ParseUint(idStr, 10, 64)
-	id := uint(idUint64)
-
-	return rs.UsersService.DeleteUsers(id)
+	idUint, err := strconv.ParseUint(idStr, 10, 64)
+	if err != nil {
+		return nil, fuego.BadRequestError{
+			Title:  "Invalid ID",
+			Detail: "ID must be a number",
+			Err:    err,
+		}
+	}
+	return rs.UsersService.DeleteUsers(uint(idUint))
 }
 
-type UsersFilter struct {
-	Name        string
-	YoungerThan int
+type UsersError struct {
+	Err     error  `json:"-" xml:"-"`
+	Message string `json:"message" xml:"message"`
 }
+
+func (e UsersError) Error() string { return e.Err.Error() }
 
 type UsersService interface {
 	GetUsers(id uint) (models.User, error)
